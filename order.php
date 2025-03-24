@@ -10,6 +10,38 @@
 	 		  - Execute the SQL query using the pdo function and fetch the result
 	 		  - Return the order info
 	 */
+	function get_order_info(PDO $pdo, array $form_data) {
+		// Extract form data (ensure proper sanitization before usage)
+		$email = isset($form_data['email']) ? $form_data['email'] : '';  // Assuming 'email' is passed in the form data
+    	$ordernum = isset($form_data['ordernum']) ? $form_data['ordernum'] : '';
+		$custnum = isset($form_data['custnum']) ? $form_data['custnum'] : '';
+		$date_ordered = isset($form_data['date_ordered']) ? $form_data['date_ordered'] : '';
+	
+		// SQL query to retrieve customer and order details based on form values
+		$sql = "SELECT customer.*, orders.*
+				FROM customer
+				JOIN orders ON customer.custnum = orders.custnum
+				WHERE customer.email = :email AND orders.ordernum = :ordernum";
+	
+		// Add conditions based on form input
+		$params = [
+			'email' => $email,
+			'ordernum' => $ordernum
+		];
+		if ($custnum) {
+			$sql .= " AND customer.custnum = :custnum";
+			$params['custnum'] = $custnum;
+		}
+		if ($date_ordered) {
+			$sql .= " AND orders.date_ordered = :date_ordered";
+			$params['date_ordered'] = $date_ordered;
+		}
+	
+		// Execute query and fetch results
+		$stmt = $pdo->prepare($sql);
+		$stmt->execute($params);
+		return $stmt->fetchAll(PDO::FETCH_ASSOC);  // Using fetchAll() to return all matching records
+	}
 
 	
 	// Check if the request method is POST (i.e, form submitted)
@@ -19,12 +51,13 @@
 		$email = $_POST['email'];
 
 		// Retrieve the value of the 'orderNum' field from the POST data
-		$orderNum = $_POST['orderNum'];
+		$ordernum = $_POST['ordernum'];
 
 
 		/*
 		 * TO-DO: Retrieve info about order from the db using provided PDO connection
 		 */
+		$order_info = get_order_info($pdo, ['email' => $email, 'ordernum' => $ordernum]);
 		
 	}
 // Closing PHP tag  ?> 
@@ -77,8 +110,8 @@
 						</div>
 
 						<div class="form-group">
-							<label for="orderNum">Order Number:</label>
-							<input type="text" id="orderNum" name="orderNum" required>
+							<label for="ordernum">Order Number:</label>
+							<input type="text" id="ordernum" name="ordernum" required>
 						</div>
 
 						<button type="submit">Lookup Order</button>
@@ -89,22 +122,18 @@
 				  -- TO-DO: Check if variable holding order is not empty. Make sure to replace null with your variable!
 				  -->
 				
-				<?php if (!empty(null)): ?>
-					<div class="order-details">
-
-						<!-- 
-				  		  -- TO DO: Fill in ALL the placeholders for this order from the db
-  						  -->
-						<h1>Order Details</h1>
-						<p><strong>Name: </strong> <?= '' ?></p>
-				        	<p><strong>Username: </strong> <?= '' ?></p>
-				        	<p><strong>Order Number: </strong> <?= '' ?></p>
-				        	<p><strong>Quantity: </strong> <?= '' ?></p>
-				        	<p><strong>Date Ordered: </strong> <?= '' ?></p>
-				        	<p><strong>Delivery Date: </strong> <?= '' ?></p>
-				      
-					</div>
-				<?php endif; ?>
+				  <?php if (!empty($order_info)): ?>
+    	<div class="order-details">
+        <h1>Order Details</h1>
+        <p><strong>Name: </strong> <?= htmlspecialchars($order_info[0]['cname']) ?></p>
+        <p><strong>Username: </strong> <?= htmlspecialchars($order_info[0]['username']) ?></p>
+        <p><strong>Order Number: </strong> <?= htmlspecialchars($order_info[0]['ordernum']) ?></p>
+        <p><strong>Quantity: </strong> <?= htmlspecialchars($order_info[0]['quantity']) ?></p>
+        <p><strong>Date Ordered: </strong> <?= htmlspecialchars($order_info[0]['date_ordered']) ?></p>
+        <p><strong>Delivery Date: </strong> <?= htmlspecialchars($order_info[0]['date_deliv']) ?></p>
+    </div>
+<?php endif; ?>
+				
 
 			</div>
 
